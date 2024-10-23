@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"watchparty/spine"
+
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{

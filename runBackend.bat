@@ -1,14 +1,14 @@
 @echo off
-set downloading=false
-set exec=false
+set "downloading=false"
+set "exec=false"
 
 for %%x in (%*) do (
-   if "%%~x" == "--downloadingDeps" set downloading=true
-   if "%%~x" == "--exec" set exec=true
+   if "%%~x" == "--downloadingDeps" set "downloading=true"
+   if "%%~x" == "--exec" set "exec=true"
 )
 
-if %exec% == true (
-    set downloading = false
+if "%exec%" == "true" (
+    set "downloading=false"
 ) ELSE (
     where /Q go
     IF ERRORLEVEL 1  (
@@ -18,7 +18,7 @@ if %exec% == true (
 )
 
 
-if %downloading% == true (
+if "%downloading%" == "true" (
     echo Downloading go dependency files...
     go get
     go install
@@ -27,8 +27,8 @@ if %downloading% == true (
 echo Running server...
 
 CD backend
-if %exec% == true (
-    ./watchparty_windows.exe
+if "%exec%" == "true" (
+    watchparty_windows.exe
 ) ELSE (
     go run main.go
 )

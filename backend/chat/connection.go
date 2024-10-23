@@ -3,9 +3,10 @@ package chat
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/gorilla/websocket"
 	"log"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type Connection struct {
@@ -14,6 +15,14 @@ type Connection struct {
 	name    string
 	webConn *websocket.Conn
 	out     chan []byte
+	color   string // text color
+	index   int
+}
+
+// sets text color for client
+func (connection *Connection) setColor() {
+	colors := []string{"red", "orange", "yellow", "green", "blue", "purple"}
+	connection.color = colors[connection.index%len(colors)]
 }
 
 func (connection *Connection) ReadRoutine() {
@@ -81,7 +90,21 @@ func (connection *Connection) WriteRoutine() {
 }
 
 func (connection *Connection) formatMessage(message []byte) []byte {
-	return append([]byte(connection.name+": "), message...)
+	// return append([]byte(connection.name+": "), message...)
+
+	formattedMessage := map[string]string{
+		"message": string(message),
+		"color":   connection.color,
+		"name":    string(connection.name),
+	}
+
+	// Convert the map to a JSON string
+	jsonMessage, err := json.Marshal(formattedMessage)
+	if err != nil {
+		log.Printf("Error Formatting Message:%v", err)
+		return nil
+	}
+	return jsonMessage
 }
 
 // this is so unbelievably insecure. TODO once we've actually got accounts, revamp or eliminate this.

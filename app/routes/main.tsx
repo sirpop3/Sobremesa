@@ -1,6 +1,7 @@
 // <<<<<<< Updated upstream
 // import { useState } from 'react';
 import type { MetaFunction } from "@remix-run/node";
+import {writeFileSync, appendFileSync} from 'fs';
 
 // // Sample list of videos from the 'media' folder (this would normally be dynamic)
 // const videos = [
@@ -112,6 +113,12 @@ import type { MetaFunction } from "@remix-run/node";
 // }
 import { useState, useEffect } from 'react';
 
+//  Websocket Message Format
+interface WebSocketMessage {
+  name: string;
+  message: string;
+  color: string;
+}
 
 const videos = ['sample.mp4'];
 
@@ -169,7 +176,6 @@ export default function MainPage() {
     constructSocket();
   };
 
-
   const handleSendMessage = () => {
     // Check if the WebSocket is initialized and open before trying to send
     if (chatInput.trim() !== '') {
@@ -182,10 +188,36 @@ export default function MainPage() {
     }
   };
 
-  const handleExternalMessage = (new_val:string) => {
-    setMessages((prevMessages) => [...prevMessages, new_val]);
+  // Extended Message Format 
+  function parseMessage(data: string): [string, string, string] {
+    try {
+        // Parse the JSON string into an object
+        const parsedData: WebSocketMessage = JSON.parse(data);
+        const { name, message, color } = parsedData;
+        return [name, message, color];
+    } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+        return ["N/A", "N/A", "N/A"];
+    }
   }
 
+  // Extended Message Storage
+  function storeMessage(name: string, message: string, color: string) {
+    const filePath = 'messages_log.txt';
+    const logEntry = `Name: ${name}, Message: ${message}, Color: ${color}\n`;
+    try {
+        appendFileSync(filePath, logEntry);
+        console.log('Message successfully stored in file.');
+    } catch (error) {
+        console.error('Error writing message to file:', error);
+    }
+}
+
+  const handleExternalMessage = (new_val:string) => {
+    setMessages((prevMessages) => [...prevMessages, new_val]);
+    
+    // 
+  }
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
