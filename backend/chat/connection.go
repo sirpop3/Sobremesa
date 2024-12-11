@@ -15,13 +15,13 @@ type Connection struct {
 	name    string
 	webConn *websocket.Conn
 	out     chan []byte
-	color   string // text color
+	color   string // text color (hex code)
 	index   int
 }
 
-// sets text color for client
+// sets text color for client (using hex codes)
 func (connection *Connection) setColor() {
-	colors := []string{"red", "orange", "yellow", "green", "blue", "purple"}
+	colors := []string{"#FF0000", "#FFA500", "#FFFF00", "#008000", "#0000FF", "#800080"}
 	connection.color = colors[connection.index%len(colors)]
 }
 
@@ -33,7 +33,10 @@ func (connection *Connection) ReadRoutine() {
 
 	connection.webConn.SetReadLimit(maxMessageSize)
 	_ = connection.webConn.SetReadDeadline(time.Now().Add(pongWait))
-	connection.webConn.SetPongHandler(func(string) error { _ = connection.webConn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	connection.webConn.SetPongHandler(func(string) error {
+		_ = connection.webConn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
 	for {
 		_, message, err := connection.webConn.ReadMessage()
 		if err != nil {
@@ -89,19 +92,18 @@ func (connection *Connection) WriteRoutine() {
 	}
 }
 
+// Formats the message to include username, message text, and color hex code
 func (connection *Connection) formatMessage(message []byte) []byte {
-	// return append([]byte(connection.name+": "), message...)
-
 	formattedMessage := map[string]string{
 		"message": string(message),
 		"color":   connection.color,
-		"name":    string(connection.name),
+		"name":    connection.name,
 	}
 
 	// Convert the map to a JSON string
 	jsonMessage, err := json.Marshal(formattedMessage)
 	if err != nil {
-		log.Printf("Error Formatting Message:%v", err)
+		log.Printf("Error Formatting Message: %v", err)
 		return nil
 	}
 	return jsonMessage
@@ -109,7 +111,6 @@ func (connection *Connection) formatMessage(message []byte) []byte {
 
 // this is so unbelievably insecure. TODO once we've actually got accounts, revamp or eliminate this.
 func (connection *Connection) marshalData(dataType DataType) []byte {
-
 	data, _ := json.Marshal(SysData{DataType: NAME_DATA, Data: connection.name})
 	return data
 }

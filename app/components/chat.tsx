@@ -1,45 +1,72 @@
 import { useState, useRef, useEffect } from "react";
 import "./chat.css";
 
+type ChatMessage = {
+    username: string;
+    message: string;
+    color: string;
+};
+
 export default function Chat() {
     const [socket, setSocket] = useState<WebSocket | null>(null);
-    const [chatInput, setChatInput] = useState<string>(''); // Input field for chat
-    const [messages, setMessages] = useState<string[]>([]); // Messages sent in the chat
+    const [chatInput, setChatInput] = useState<string>(""); // Input field for chat
+    const [messages, setMessages] = useState<ChatMessage[]>([]); // Messages sent in the chat
     const [isAutoScroll, setIsAutoScroll] = useState<boolean>(true); // Track if auto-scroll is enabled
     const messageContainerRef = useRef<HTMLUListElement>(null);
-
+    const [username] = useState<string>(() =>
+        Math.random().toString(36).substring(2, 12)
+    ); // Randomly generated username
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageIndex: number } | null>(null);
 
     function constructSocket() {
         const newSocket = new WebSocket("ws://localhost:8080/ws");
-    
+
         newSocket.addEventListener("message", (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.dataType == "NAME") {
-              console.log("Username = " + data.data);
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.username && data.message && data.color) {
+                    const newMessage: ChatMessage = {
+                        username: data.username,
+                        message: data.message,
+                        color: data.color,
+                    };
+                    setMessages((prevMessages) => [...prevMessages, newMessage]);
+                }
+            } catch (error) {
+                console.error("Error processing WebSocket message:", error);
             }
-          } catch (error) {
-            handleExternalMessage(event.data)
-          }
         });
-    
-        setSocket(newSocket)
-      }
+
+        setSocket(newSocket);
+    }
 
     const handleSendMessage = () => {
-        if (chatInput.trim() !== '') {
-            setMessages([...messages, chatInput]);
-            setChatInput(''); // Clear input after sending
+        if (chatInput.trim() !== "" && socket) {
+            const outgoingMessage = {
+                username: username,
+                message: chatInput,
+                color: "#000000",
+            };
+            socket.send(JSON.stringify(outgoingMessage));
+
+            setMessages((prevMessages) => [...prevMessages, outgoingMessage]);
+            setChatInput(""); // Clear input after sending
         }
     };
 
-    const handleExternalMessage = (new_val:string) => {
-        setMessages((prevMessages) => [...prevMessages, new_val]);
-    }
+    const handleDeleteMessage = (index: number) => {
+        setMessages((prevMessages) => prevMessages.filter((_, i) => i !== index));
+        setContextMenu(null); // Close context after deleting
+    };
 
-    // Handle Enter key press in the chat input
+    const handleRightClick = (e: React.MouseEvent, index: number) => {
+        e.preventDefault(); 
+        setContextMenu({ x: e.clientX, y: e.clientY, messageIndex: index });
+    };
+
     const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
+        if (e.key === "Enter") {
             handleSendMessage();
         }
     };
@@ -54,35 +81,59 @@ export default function Chat() {
     const handleScroll = () => {
         const messageContainer = messageContainerRef.current;
         if (messageContainer) {
-            const isAtBottom = messageContainer.scrollHeight - messageContainer.scrollTop === messageContainer.clientHeight;
+            const isAtBottom =
+                messageContainer.scrollHeight - messageContainer.scrollTop ===
+                messageContainer.clientHeight;
             setIsAutoScroll(isAtBottom);
         }
     };
 
-    // Function to run when the chat is loaded
     const onChatLoad = () => {
-        constructSocket(); // Connect to the WebSocket server
-        // Add any other logic you want to run when the chat loads
+        constructSocket();
     };
 
     useEffect(() => {
         onChatLoad();
-    }, []); // Empty dependency array ensures this runs only once when the component mounts
+    }, []);
 
     return (
-        <div className="chat">
-            <ul className="messageContainer" ref={messageContainerRef} onScroll={handleScroll}>
-                {/* Display chat messages */}
+        <div className="chat" onClick={() => setContextMenu(null)}> {}
+            <ul
+                className="messageContainer"
+                ref={messageContainerRef}
+                onScroll={handleScroll}
+            >
                 {messages.map((message, index) => (
-                    <li key={index} className="messageList">
-                        <span className="message">
-                            {message}
+                    <li
+                        key={index}
+                        className="messageList"
+                        onContextMenu={(e) => handleRightClick(e, index)}
+                    >
+                        <span
+                            className="messageUsername"
+                            style={{ color: message.color }}
+                        >
+                            {message.username}:
                         </span>
+                        <span className="messageText">{message.message}</span>
                     </li>
                 ))}
             </ul>
 
-            {/* Input field to type chat messages */}
+            {contextMenu && (
+                <div
+                    className="contextMenu"
+                    style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
+                >
+                    <button
+                        onClick={() => handleDeleteMessage(contextMenu.messageIndex)}
+                        className="contextMenuButton"
+                    >
+                        Delete
+                    </button>
+                </div>
+            )}
+
             <div className="inputContainer">
                 <input
                     type="text"
@@ -90,12 +141,9 @@ export default function Chat() {
                     placeholder="Type a message..."
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    onKeyPress={handleKeyPress} // Add key press event
+                    onKeyPress={handleKeyPress}
                 />
-                <button
-                    className="sendButton"
-                    onClick={handleSendMessage}
-                >
+                <button className="sendButton" onClick={handleSendMessage}>
                     Send
                 </button>
             </div>
