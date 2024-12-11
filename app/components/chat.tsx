@@ -21,7 +21,23 @@ export default function Chat() {
     function constructSocket() {
         const newSocket = new WebSocket("ws://localhost:8080/ws");
 
+
         newSocket.addEventListener("message", (event) => {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.username && data.message && data.color) {
+                    // Add the received message to the state
+                    const newMessage: ChatMessage = {
+                        username: data.username,
+                        message: data.message,
+                        color: data.color,
+                    };
+                    setMessages((prevMessages) => [...prevMessages, newMessage]);
+                }
+            } catch (error) {
+                console.error("Error processing WebSocket message:", error);
+            }
             try {
                 const data = JSON.parse(event.data);
 
@@ -41,23 +57,30 @@ export default function Chat() {
         setSocket(newSocket);
     }
 
+    // Placeholder, generates random username
+    const generateRandomUsername = (): string => {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let username = "";
+        for (let i = 0; i < 10; i++) {
+            username += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return username;
+    };
+
     const handleSendMessage = () => {
         if (chatInput.trim() !== "" && socket) {
+            // Send message to WebSocket
             const outgoingMessage = {
-                username: username,
+                username: generateRandomUsername(), // have to add support for username Editing
                 message: chatInput,
-                color: "#000000",
+                color: "#000000", // Default color
             };
             socket.send(JSON.stringify(outgoingMessage));
 
+            // Add the message locally
             setMessages((prevMessages) => [...prevMessages, outgoingMessage]);
             setChatInput(""); // Clear input after sending
         }
-    };
-
-    const handleDeleteMessage = (index: number) => {
-        setMessages((prevMessages) => prevMessages.filter((_, i) => i !== index));
-        setContextMenu(null); // Close context after deleting
     };
 
     const handleRightClick = (e: React.MouseEvent, index: number) => {
@@ -66,6 +89,7 @@ export default function Chat() {
     };
 
     const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
         if (e.key === "Enter") {
             handleSendMessage();
         }
@@ -82,7 +106,9 @@ export default function Chat() {
         const messageContainer = messageContainerRef.current;
         if (messageContainer) {
             const isAtBottom =
+               
                 messageContainer.scrollHeight - messageContainer.scrollTop ===
+               
                 messageContainer.clientHeight;
             setIsAutoScroll(isAtBottom);
         }
@@ -99,21 +125,18 @@ export default function Chat() {
     return (
         <div className="chat" onClick={() => setContextMenu(null)}> {}
             <ul
+               
                 className="messageContainer"
+               
                 ref={messageContainerRef}
+               
                 onScroll={handleScroll}
+            
             >
                 {messages.map((message, index) => (
-                    <li
-                        key={index}
-                        className="messageList"
-                        onContextMenu={(e) => handleRightClick(e, index)}
-                    >
-                        <span
-                            className="messageUsername"
-                            style={{ color: message.color }}
-                        >
-                            {message.username}:
+                    <li key={index} className="messageList">
+                        <span className="message">
+                            {message}
                         </span>
                         <span className="messageText">{message.message}</span>
                     </li>
@@ -143,7 +166,10 @@ export default function Chat() {
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                 />
-                <button className="sendButton" onClick={handleSendMessage}>
+                <button
+                    className="sendButton"
+                    onClick={handleSendMessage}
+                >
                     Send
                 </button>
             </div>
