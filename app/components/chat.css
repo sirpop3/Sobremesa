@@ -24,10 +24,13 @@
   padding: 1rem;
   width: 100%;
   padding: 10px;
-  border: none;
+  border: 2px solid;
+  border-image-source: linear-gradient(to right, #c400ff, #3b82f6);
+  border-image-slice: 1;
   background-color: transparent;
   color: white;
   outline: none;
+  border-radius: 10px;
 }
 
 .messageContainer {
@@ -38,13 +41,16 @@
   height: 300px;
   width: 100%;
   overflow: scroll;
+  scroll-behavior: smooth;
   background: linear-gradient(to top, black, transparent);
 }
 
 .sendButton {
   padding: 0.5rem;
   width: 5rem;
-  border: none;
+  border: 2px solid;
+  border-image-source: linear-gradient(to right, #c400ff, #3b82f6);
+  border-image-slice: 1;
   background: url("../assets/textures/darkglass.svg"), linear-gradient(90deg, rgba(196, 0, 255, 0.3), rgba(59, 130, 246, 0.3));
   backdrop-filter: blur(20px);
   background-size: cover;
@@ -52,6 +58,18 @@
   border-radius: 100rem;
   color: white;
   cursor: pointer;
+}
+
+/* Button Hover tactility */
+.sendButton:hover {
+  transform: scale(1.05);
+  background: url("../assets/textures/darkglass.svg"), linear-gradient(90deg, rgba(196, 0, 255, 0.5), rgba(59, 130, 246, 0.5));
+  transition: all 0.2s ease-in-out;
+}
+
+.messageList .message:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: background-color 0.3s ease-in-out;
 }
 
 .messageList {
@@ -70,4 +88,12 @@
 
 .message {
     color: white;
+}
+
+/* Message Timestamping */
+.messageTime {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 5px;
+  display: inline-block;
 }
